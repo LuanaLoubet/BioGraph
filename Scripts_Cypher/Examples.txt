@@ -1,0 +1,219 @@
+﻿ /***************************************************************************
+ *   Copyright (C) 2017 by Luana Loubet Borges, André Santanchè
+ *   Authors: Luana Loubet - luanaloubet@gmail.com
+ *	      André Santanchè - santanche@ic.unicamp.br
+ *	      
+ *   
+ *    This file is part of BioGraph.
+ *
+ *   BioGraph is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   Foobar is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+ ****************************************************************************/	
+
+
+
+
+
+﻿Examples
+
+
+MATCH (m1:MP {mp_term: "MP:0001209"})<--(m2:MP)<--(m3:MP)
+MATCH (m2) WHERE m2.name<>"" AND m2.mp_term<>"MP:0000001"
+MATCH (m3) WHERE m3.name<>"" AND m3.mp_term<>"MP:0000001"
+return m1,m2,m3 LIMIT 50
+
+
+MATCH (m1:MP {mp_term: "MP:0001209"})
+return m1
+
+
+MATCH (u:Uberon {id: "UBERON:0000014"})--(n) WHERE n.id="UBERON:0001868" OR (NOT (n:Uberon))
+return u,n
+
+
+
+
+Exemplo DO ARTIGO
+Exemplo do olho:
+match(s:Statement_EQ {id:"99992"}) return s
+
+
+match(z:ZP {id:"ZP:0006826"}) return z
+
+
+* Fui pelo ZP, lá tem um zdb_gene, fui no site do zfin procurar qual era a doença
+* http://zfin.org/action/ontology/term-detail/DOID:0060237
+* * http://disease-ontology.org/downloads/
+* * Vários obo:
+* https://trac.nbic.nl/ibidas/browser/data?rev=240
+
+
+Ex: Retina Malformed (distrofia)
+ZFA:0000152 (retina)
+ZP:0001866
+PATO:0001780 (distrofia)
+ZP:0001866 - Liga ZFA retina com PATO distrofia para pegar esses 3 veja (*)
+HP:0006785 (limb-girdle muscular dystrophy)  DOENÇA
+
+
+
+
+(*)
+MATCH (z:ZP {id:"P:0001866"})-[r]-(p:PATO {id:"PATO:0001780"})
+Match (z)-[t]-(s:ZFA {id:"ZFA:0000152"})
+return z,r,p,t, LIMIT 50
+
+
+
+
+PATO:0000117 (tamanho)
+PATO:0000587 (malformed)  → Statement_EQ: 90129
+PATO:0000587 (decreased size)
+ZDB-GENE-021223-1
+UBERON:0000964 (cornea)  -> LIgações desse uberon abaixo
+HP:0001131 (Corneal dystrophy) é pai de HP:0007709 e de HP:0008005
+HP:0007709 (Band-shaped corneal dystrophy)
+HP:0008005 (distrofia congenita da cornea)
+
+
+
+
+-----------
+ZFA:0000640 (cornea)
+UBERON:0000964 (cornea) esta ligado com todos esse Hp
+HP:0000482 (Microcornea)
+HP:0000485 (Megalocornea)
+HP:0000483 (Astigmatismo) -- \o/ esse é same_as MP:0006151
+MP:0006151 (Astigmatismo)  -> [esse uberon está ligado com um monte de MP, e tem cornea opaque para MP se quiser pesquisar pelo MP]
+MP:0009825 (cornea ulcer)
+MP:0001314 (corneal opacity) -> PATO:0000460 <- ZP:0002954
+MP:0006151 (Astigmatismo) ta ligado com PATO
+
+
+Uberon está ligado com DOID:11265
+DOID:11265 (trachoma)
+DOID:11265  liga no NCBITaxon:813 (Chlamydia trachomatis)
+DOID:11265 liga no DOID:0050339
+DOID:9909 (Hordeolum) esta ligado com:
+DOID:11265->UBERON:0010168->DOID:9909
+
+
+
+
+
+
+------------------
+PATO:0000462 (absent)
+ZFA:0000640 (cornea)
+Ligados pelo ZP:0002954
+ZFA:0000640 (cornea) -> UBERON:0000964 (cornea)
+
+
+Exemplo de Astigmatismo
+
+
+match  (p:PATO {id:"PATO:0000460"})-[t]-(z:ZP {id:"ZP:0002954"})-[r]-(q:ZFA {id:"ZFA:0000640"})-[s]-(u:Uberon {id:"UBERON:0000964"})<-[w]-(h:HP {id:"HP:0000483"})-[o]-(d:DOID {id:"DOID:11782"})
+match (u)<-[y]-(m:MP {mp_term:"MP:0006151"})
+return p,t,z,r,q,s,u,w,h,y,m,o,d
+MP:0001312 tem ligação com zfa e pato a mesma que o zp.
+
+
+
+
+
+
+
+
+------------------
+distrofia muscular:
+ZFA:0005145
+PATO:0001780 (distrofia)
+Statement_EQ: 90164
+HP:0006785 (limb-girdle muscular dystrophy)  DOENÇA causada por essa EQ
+
+
+
+
+Ligados com PATO:0001780:
+HP:0001810 (Dystrophic toenail)
+
+
+-----
+
+
+Coisas novas em 06/11/2015
+
+
+** Menor caminho entre o ZP e o MP
+MATCH (z:ZP {id: "ZP:0002954"}),(m:MP {mp_term: "MP:0006151"}),
+  p = shortestPath((z)-[*]-(m))
+RETURN p
+
+
+** Todos os menores caminhos
+MATCH (z:ZP {id: "ZP:0002954"}),(m:MP {mp_term: "MP:0006151"}),
+  p = allShortestPaths((z)-[*]-(m))
+RETURN p
+
+
+** Ligando ZP com MP por duas qualidades
+MATCH (m:MP {mp_term: "MP:0001314"})--(p1:PATO {id: "PATO:0000957"})--(z:ZP)
+MATCH (m)--(p2:PATO {id: "PATO:0000460"})--(z)
+RETURN m,p1,p2,z
+
+
+MATCH (z:ZP {id: "ZP:0003871"}),(m:MP {mp_term: "MP:0001314"}),
+  p = allShortestPaths((z)-[*]-(m))
+RETURN p
+
+
+MATCH (p:PATO)<--(z1:ZP)-[:has_entity]->(z2:ZFA)-[:cross]->(u:Uberon)<-[:intersection_of]-(m:MP)
+MATCH (m)-->(p)
+RETURN p,z1,z2,u,m LIMIT 20
+
+
+
+
+Devolve o padrão do exemplo do Astigmatismo
+MATCH (p1:PATO) WHERE p1.name <> "Quality" AND p1.name <> "quality"
+MATCH (p1)<--(z1:ZP)-[:has_entity]->(z2:ZFA)-[:cross]->(u:Uberon)<-[:intersection_of]-(m:MP)
+MATCH (p2:PATO) WHERE p2.name <> "Quality" AND p2.name <> "quality"
+MATCH (p2)<--(z1)
+MATCH (p1)<--(m)-->(p2)
+RETURN p1,p2,z1,z2,u,m LIMIT 10
+
+
+
+
+MATCH (p1:PATO) WHERE p1.name <> "Quality" AND p1.name <> "quality"
+MATCH (p1)<--(z1:ZP)-[:has_entity]->(z2:ZFA)-[:cross]->(u:Uberon)<-[:intersection_of]-(m:MP)
+MATCH (m)-[r:intersection_of]->(p1)
+RETURN p1,z1,z2,u,mLIMIT 10
+
+
+
+
+
+
+CREATE (n:DOID {id:"DOID:11782", name:"astigmatism", description:"A refractive error characterized by the optics of the eye to focus a point object into a sharp focused image on the retina, has_symptom blurred vision". })
+
+
+
+
+match(n:DOID) WHERE n.name =~ '(?i).*RHEUMATOID ARTHRITIS.*' return n
+
+
+
+
+MATCH (n:HP)--(m:MP)
+return count(distinct n)

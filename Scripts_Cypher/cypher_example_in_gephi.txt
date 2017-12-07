@@ -1,0 +1,105 @@
+﻿ /***************************************************************************
+ *   Copyright (C) 2017 by Luana Loubet Borges, André Santanchè
+ *   Authors: Luana Loubet - luanaloubet@gmail.com
+ *	      André Santanchè - santanche@ic.unicamp.br
+ *	      
+ *   
+ *    This file is part of BioGraph.
+ *
+ *   BioGraph is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   Foobar is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+ ****************************************************************************/	
+
+
+
+
+﻿Results to Gephi
+
+
+A seguir contém as consultas que foram usadas como entrada no gephi.
+
+
+ Example FAGNER
+//Get all species linked to eq that have indegree> 357 (in order to highlight the most linked eq)
+MATCH (Species)-[r1:SPECIES_TO_EQ_U]-(eq:EQ_U)
+with eq, count(r1) as c where c>357
+match (s:Species)-[r2:SPECIES_TO_EQ_U]->(eq)
+return distinct ID(s) as id, s.Specie     s as Label
+
+
+
+
+//Get all symptom linked to DOID that have indegree>8 (in order to highlight the most linked eq)
+MATCH (d:DOID)<-[r1]-(s:SYMP)
+with d, count(r1) as c where c>8
+match (s1:SYMP)-[r2]->(d)
+return distinct id(s1) as id, s1.name as Label
+
+
+//Get relation between DOID e SYMP
+MATCH (d:DOID)<-[r1]-(s:SYMP)
+with d, count(r1) as c where c>8
+match (s1:SYMP)-[r2]->(d)
+return distinct id(s1) as Source, id(d) as Target
+
+
+
+
+// Uberon selecionado acima está ligado com:
+MATCH (d:DOID)<-[r1]-(s:SYMP)
+with d, count(r1) as c where c>8
+match (g:Uberon)-[r2]->(d)
+match (g)-[r]-(w)
+return distinct id(w) as id, w.name as Label, Labels(w)
+
+
+
+
+MATCH (d:DOID)<-[r1]-(s:SYMP)
+with d, count(r1) as c where c>8
+match (g:Uberon)-[r2]->(d)
+match (g)-[r]-(w) WHERE (w:MP) OR (w:HP)
+return distinct id(w) as id, w.name as Label, Labels(w), g.name, d.name
+
+
+
+
+MATCH (n:DOID)-[r]-(m:MP)
+MATCH (n)-[s]-(h:HP)
+return n,r,s,h limit 100
+
+
+-------- Relacionamento SHARED_DISEASE
+// Retorna todo SYMP que tem relação com outro SYMP sem duplicar nós
+MATCH (s1)-[r:SHARED_DISEASE]-()
+return distinct id(s1) AS id, s1.name AS Label, "SYMP" AS type
+
+
+//Retorna relações de Symp--Symp para rodar análise
+MATCH (s1:SYMP)-[r:SHARED_DISEASE]->(s2:SYMP) WHERE s1.id <> s2.id
+return id(s1) AS Source, id(s2) AS Target, r.n AS Weight  
+
+
+
+
+
+
+-------- Relacionamento SHARED_ENTITY
+// Retorna todo SYMP que tem relação SHARED_ENTITY com outro SYMP sem duplicar nós
+MATCH (s1)-[r:SHARED_ENTITY ]-()
+return distinct id(s1) AS id, s1.name AS Label, "SYMP" AS type
+
+
+//Retorna relações de Symp-SHARED_ENTITY-Symp para rodar análise
+MATCH (s1:SYMP)-[r:SHARED_ENTITY ]->(s2:SYMP) WHERE s1.id <> s2.id
+return id(s1) AS Source, id(s2) AS Target, r.n AS Weight

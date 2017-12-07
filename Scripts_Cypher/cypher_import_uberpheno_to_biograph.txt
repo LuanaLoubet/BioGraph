@@ -1,0 +1,1278 @@
+﻿﻿ /***************************************************************************
+ *   Copyright (C) 2017 by Luana Loubet Borges, André Santanchè
+ *   Authors: Luana Loubet - luanaloubet@gmail.com
+ *	      André Santanchè - santanche@ic.unicamp.br
+ *	      
+ *   
+ *    This file is part of BioGraph.
+ *
+ *   BioGraph is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   Foobar is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+ ****************************************************************************/	
+
+
+
+Scripts to import Uberpheno to Neo4j
+
+
+// Cria termos NBO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/behavior_simple.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:NBO, e.id = line.id, e.name = line.name, e.description = line.def
+
+
+// Cria relacionamento is_a em termos NBO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/up_behavior_is_a.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:NBO, e.id = line.id
+MERGE (s:Entity {id: line.is_a})
+ON CREATE SET s:NBO, s.id = line.is_a
+MERGE (s)-[:is_a]->(e)
+
+
+// Carrega os sinonimos de NBO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/up_behavior_synonym.csv' AS line
+MERGE (p:NBO {id: line.id })
+ON CREATE SET p:Entity, p.id = line.id
+MERGE (s:Label:LabelEntity {name: line.syn})
+ON CREATE SET s.name = line.syn
+MERGE (s)-[:is_synonym]->(p)
+
+
+CREATE CONSTRAINT ON (u:HP) ASSERT u.id IS UNIQUE
+
+
+/* XREF */
+// Carrega os termos XREF com NBO
+
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/up_behavior_xref.csv' AS line
+MERGE (s:NBO {id: line.id})
+        ON CREATE SET s.id = line.id
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_xref = "GO" THEN [1] ELSE [] END) |
+        MERGE (p:GO {id: line.xref})
+                ON CREATE SET p:Entity, p.id = line.xref
+         MERGE (s)-[:xref]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_xref = "HP" THEN [1] ELSE [] END) |
+      MERGE (p:Entity {id: line.xref})
+           ON CREATE SET p:HP, p.id = line.xref
+     MERGE (s)-[:xref]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_xref = "MP" THEN [1] ELSE [] END) |
+MERGE (p:MP {mp_term: line.xref})
+ON CREATE SET p:Statement, p.mp_term = line.xref
+MERGE (s)-[:xref]->(p)
+)
+
+
+CREATE CONSTRAINT ON (u:Uberpheno) ASSERT u.id IS UNIQUE
+
+
+// Cria relacionamento Cross - Species Upheno
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cross_species_upheno.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "HP" THEN [1] ELSE [] END) |
+        MERGE (p:HP {id: line.id})
+                ON CREATE SET p.id = line.id
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "HP" THEN [1] ELSE [] END) |
+        MERGE (s:HP {id: line.is_a})
+                ON CREATE SET s.id = line.is_a
+        MERGE (s)-[:is_a]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "UBERPHENO" THEN [1] ELSE [] END) |
+MERGE (s:Uberpheno {id: line.is_a})
+ON CREATE SET s.id = line.is_a
+MERGE (s)-[:is_a]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "ZP" THEN [1] ELSE [] END) |
+MERGE (s:ZP {id: line.is_a})
+ON CREATE SET s.id = line.is_a
+MERGE (s)-[:is_a]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "MP" THEN [1] ELSE [] END) |
+        MERGE (s:MP {mp_term: line.is_a})
+                ON CREATE SET s:Statement, s.mp_term = line.is_a
+        MERGE (s)-[:is_a]->(p)
+        )
+)
+// MP
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "MP" THEN [1] ELSE [] END) |
+MERGE (p:MP {mp_term: line.id})
+ON CREATE SET p:Statement, p.mp_term = line.id
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "MP" THEN [1] ELSE [] END) |
+MERGE (s:MP {mp_term: line.is_a})
+ON CREATE SET p:Statement, s.mp_term = line.is_a
+MERGE (s)-[:is_a]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "UBERPHENO" THEN [1] ELSE [] END) |
+MERGE (s:Uberpheno {id: line.is_a})
+ON CREATE SET s.id = line.is_a
+MERGE (s)-[:is_a]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "HP" THEN [1] ELSE [] END) |
+MERGE (s:HP {id: line.is_a})
+ON CREATE SET s.id = line.is_a
+MERGE (s)-[:is_a]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "ZP" THEN [1] ELSE [] END) |
+MERGE (s:ZP {id: line.is_a})
+ON CREATE SET s.id = line.is_a
+MERGE (s)-[:is_a]->(p)
+)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "ZP" THEN [1] ELSE [] END) |
+MERGE (p:ZP {id: line.id})
+ON CREATE SET p:Statement, p.id = line.id
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "ZP" THEN [1] ELSE [] END) |
+MERGE (s:ZP {id: line.is_a})
+ON CREATE SET s.id = line.is_a
+MERGE (s)-[:is_a]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "HP" THEN [1] ELSE [] END) |
+MERGE (s:HP {id: line.is_a})
+ON CREATE SET s.id = line.is_a
+MERGE (s)-[:is_a]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "UBERPHENO" THEN [1] ELSE [] END) |
+MERGE (s:Uberpheno {id: line.is_a})
+ON CREATE SET s.id = line.is_a
+MERGE (s)-[:is_a]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_is_a = "MP" THEN [1] ELSE [] END) |
+MERGE (s:MP {mp_term: line.is_a})
+ON CREATE SET s.mp_term = line.is_a
+MERGE (s)-[:is_a]->(p)
+)
+)
+
+
+CREATE CONSTRAINT ON (u:ZP) ASSERT u.id IS UNIQUE
+
+
+CREATE CONSTRAINT ON (u:Fyler) ASSERT u.id IS UNIQUE
+
+
+/* ALT ID */
+// Carrega cross species com relacionamento alt_id
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cross_species_upheno_alt_id.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "HP" THEN [1] ELSE [] END) |
+MERGE (p:HP {id: line.id})
+ON CREATE SET p.id = line.id
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt = "HP" THEN [1] ELSE [] END) |
+MERGE (s:HP {id: line.alt_id})
+ON CREATE SET s.id = line.alt_id
+MERGE (s)-[:same_as]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt = "ZP" THEN [1] ELSE [] END) |
+MERGE (s:ZP {id: line.alt_id})
+ON CREATE SET s.id = line.alt_id
+MERGE (s)-[:same_as]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt = "MP" THEN [1] ELSE [] END) |
+MERGE (s:MP {mp_term: line.alt_id})
+ON CREATE SET s:Statement, s.mp_term = line.alt_id
+MERGE (s)-[:same_as]->(p)
+)
+)
+// MP
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "MP" THEN [1] ELSE [] END) |
+MERGE (p:MP {mp_term: line.id})
+ON CREATE SET p:Statement, p.mp_term = line.id
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt = "MP" THEN [1] ELSE [] END) |
+MERGE (s:MP {mp_term: line.alt_id})
+ON CREATE SET p:Statement, s.mp_term = line.alt_id
+MERGE (s)-[:same_as]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt = "HP" THEN [1] ELSE [] END) |
+MERGE (s:HP {id: line.alt_id})
+ON CREATE SET s.id = line.alt_id
+MERGE (s)-[:same_as]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt = "ZP" THEN [1] ELSE [] END) |
+MERGE (s:ZP {id: line.alt_id})
+ON CREATE SET s.id = line.alt_id
+MERGE (s)-[:same_as]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt = "Fyler" THEN [1] ELSE [] END) |
+MERGE (s:Fyler {id: line.alt_id})
+ON CREATE SET s.id = line.alt_id
+MERGE (s)-[:same_as]->(p)
+)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "ZP" THEN [1] ELSE [] END) |
+MERGE (p:ZP {id: line.id})
+ON CREATE SET p:Statement, p.id = line.id
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt = "ZP" THEN [1] ELSE [] END) |
+MERGE (s:ZP {id: line.alt_id})
+ON CREATE SET s.id = line.alt_id
+MERGE (s)-[:same_as]->(p)
+)
+)
+
+
+CREATE CONSTRAINT ON (u:DOID) ASSERT u.id IS UNIQUE
+
+
+/* DOID */
+// Cria termos doid
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_term_upheno.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+
+
+
+
+// Cria relacionamento is_a em termos DOID
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_term_upheno.csv' AS line
+MERGE (e:DOID {id: line.id})
+     ON CREATE SET e:Entity, e.id = line.id, e.name = line.name, e.definition = line.def_id
+MERGE (s:DOID {id:trim(line.is_a)}) 
+          ON CREATE SET s:Entity, s.id = trim(line.is_a), s.name = line.name_is_a
+MERGE (s)-[:is_a]->(e)
+
+
+
+
+// Cria relacionamentos transmitted_by Uberon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_transmitted_by_uberon.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:Uberon {id: line.rel})
+ON CREATE SET s:Entity, s.id = line.rel
+MERGE (s)-[:transmitted_by]->(e)
+
+
+
+
+// Cria relacionamentos has_locus Uberon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_has_locus_uberon.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:Uberon {id: line.rel})
+ON CREATE SET s:Entity, s.id = line.rel
+MERGE (s)-[:has_locus]->(e)
+
+
+
+
+// Cria relacionamentos has_material_basis Uberon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_material_basis_uberon.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:Uberon {id: line.rel})
+ON CREATE SET s:Entity, s.id = line.rel
+MERGE (s)-[:has_material]->(e)
+
+
+
+
+// Cria relacionamentos DOID-MP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_mp_upheno.csv' AS line
+MERGE (e:Entity {id: line.id})
+        ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:MP {mp_term: line.rel})
+        ON CREATE SET s:Statement, s.mp_term = line.rel
+MERGE (e)-[:has_phenotype]->(s)
+
+
+
+
+// Cria relacionamentos DOID-HP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_has_phenotype_HP.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:HP {id: line.rel})
+ON CREATE SET s.id = line.rel, s.name = line.name_rel
+MERGE (e)-[:has_phenotype]->(s)
+
+
+
+
+/* DOID-NCBI */
+/ Cria relacionamentos transmitted_by NCBITaxon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_transmitted_by_NCBI.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:NCBITaxon {id: line.rel})
+ON CREATE SET s.id = line.rel
+MERGE (s)-[:transmitted_by]->(e)
+
+
+CREATE CONSTRAINT ON (u:NCBITaxon) ASSERT u.id IS UNIQUE
+
+
+// Cria relacionamentos has_material_basis NCBITaxon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_has_material_NCBITaxon.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:NCBITaxon {id: line.rel})
+ON CREATE SET s.name=line.name_rel, s.id = line.rel
+MERGE (s)-[:has_material]->(e)
+
+
+
+
+/* DOID - TRANS */
+// Cria relacionamentos transmitted_by TRANS
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_transmitted_by_TRANS.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:TRANS {id: line.rel})
+ON CREATE SET s.id = line.rel
+MERGE (s)-[:transmitted_by]->(e)
+
+
+CREATE CONSTRAINT ON (u:TRANS) ASSERT u.id IS UNIQUE
+
+
+/* DOID - CL */
+// Cria relacionamentos has_locus CL
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_has_locus_CL.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:CL {id: line.rel})
+ON CREATE SET s:Entity, s.id = line.rel, s.name=line.name_rel
+MERGE (s)-[:has_locus]->(e)
+
+
+// Cria relacionamentos has_material CL
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_has_material_CL.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:CL {id: line.rel})
+ON CREATE SET s:Entity, s.name=line.name_rel, s.id = line.rel
+MERGE (s)-[:has_material]->(e)
+
+
+/* DOID - GO */
+// Cria relacionamentos has_material GO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_has_material_GO.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:GO {id: line.rel})
+ON CREATE SET s:Entity, s.name=line.name_rel, s.id = line.rel
+MERGE (s)-[:has_material]->(e)
+
+
+/* DOID - SYMP */
+// Cria relacionamentos has_material SYMP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_has_material_SYMP.csv' AS line
+MERGE (e:Entity {id: line.id})
+ON CREATE SET e:DOID, e.id = line.id, e.name = line.name, e.description = line.def_id
+MERGE (s:SYMP {id: line.rel})
+ON CREATE SET s:Entity, s.name=line.name_rel, s.id = line.rel
+MERGE (s)-[:has_material]->(e)
+
+
+
+
+/* HP */
+// Cria termos HP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/hp.csv' AS line
+MATCH (e:Entity {id: line.id})
+FOREACH (ignoreMe IN (CASE WHEN e IS NOT NULL THEN [1] ELSE [] END) |
+        SET e.name = line.name
+        SET e.description = line.def
+        SET e:HP
+)
+FOREACH (ignoreMe IN (CASE WHEN e IS NULL THEN [1] ELSE [] END) |
+        CREATE (e:Entity:HP {id: line.id, name: line.name, description: line.def})
+)
+
+
+
+
+// Cria termos HP 2
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/HP2.csv' AS line
+MATCH (e:Entity {id: line.id})
+FOREACH (ignoreMe IN (CASE WHEN e IS NOT NULL THEN [1] ELSE [] END) |
+        SET e.name = line.name
+        SET e.description = line.def
+    SET e.uri = line.uri
+        SET e:HP
+)
+FOREACH (ignoreMe IN (CASE WHEN e IS NULL THEN [1] ELSE [] END) |
+        CREATE (e:Entity:HP {id: line.id, name: line.name, description: line.def})
+)
+
+
+// Cria relacionamento is_a em termos HP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/hp_is_a.csv' AS line
+MERGE (e:HP {id: line.id})
+        ON CREATE SET e.id = line.id
+MERGE (s:HP {id: line.is_a})
+        ON CREATE SET s.id = line.is_a
+MERGE (s)-[:is_a]->(e)
+
+
+
+
+// Carrega os sinonimos de HP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/hp_syn2.csv' AS line
+MERGE (p:HP {id: line.id })
+        ON CREATE SET p:Entity, p.id = line.id
+MERGE (s:Label:LabelEntity {name: line.syn})
+        ON CREATE SET s.name = line.syn
+MERGE (s)-[:is_synonym]->(p)
+
+
+
+
+
+
+// Cria relacionamento SAME_AS em termos HP (alt_id)
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/hp_alt_id.csv' AS line
+MERGE (e:HP {id: line.id})
+        ON CREATE SET e.id = line.id
+MERGE (s:HP {id: line.alt_id})
+        ON CREATE SET s.id = line.alt_id
+MERGE (s)-[:same_as]->(e)
+
+
+
+
+/* AXIOMS */
+// Carrega os termos de axioms com HP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/hp_axioms.csv' AS line
+MERGE (s:HP {id: line.id})
+ON CREATE SET s:Entity, s.id = line.id, s.name=line.name
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CHEBI" THEN [1] ELSE [] END) |
+MERGE (p:CHEBI {id: line.rel})
+ON CREATE SET p:Entity, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:axiom{relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CL" THEN [1] ELSE [] END) |
+MERGE (p:CL {id: line.rel})
+ON CREATE SET p:Entity, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:axiom {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "FMA" THEN [1] ELSE [] END) |
+MERGE (p:FMA {id: line.rel})
+ON CREATE SET p:Entity, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:axiom {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "GO" THEN [1] ELSE [] END) |
+MERGE (p:GO {id: line.rel})
+ON CREATE SET p:Entity, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:axiom {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "HP" THEN [1] ELSE [] END) |
+MERGE (p:HP {id: line.rel})
+ON CREATE SET p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:axiom {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "MPATH" THEN [1] ELSE [] END) |
+MERGE (p:MPATH {id: line.rel})
+ON CREATE SET p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:axiom {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "NBO" THEN [1] ELSE [] END) |
+MERGE (p:NBO {id: line.rel})
+ON CREATE SET p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:axiom {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "PATO" THEN [1] ELSE [] END) |
+MERGE (p:PATO {id: line.rel})
+ON CREATE SET p:Quality, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:axiom]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "PR" THEN [1] ELSE [] END) |
+MERGE (p:PR {id: line.rel})
+ON CREATE SET p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:axiom {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "UBERON" THEN [1] ELSE [] END) |
+MERGE (p:Uberon {id: line.rel})
+ON CREATE SET p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:axiom {relation: line.relation}]->(p)
+)
+
+
+
+
+/* XREF */
+// Carrega os termos de xref com HP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/hp_xref.csv' AS line
+WITH line, SPLIT(line.xref, ":") AS n
+MERGE (s:HP {id: line.id})
+ON CREATE SET s.id = line.id
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "MeSH" THEN [1] ELSE [] END) |
+MERGE (p:MESH {id: line.xref})
+ON CREATE SET p:Entity, p.id = line.xref, p.name = line.name_xref
+CREATE (s)-[:xref]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "MP" THEN [1] ELSE [] END) |
+MERGE (p:MP {mp_term: line.xref})
+ON CREATE SET p:Entity, p.mp_term = line.xref, p.name = line.name_xref
+CREATE (s)-[:xref]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "SNOMEDCT" THEN [1] ELSE [] END) |
+MERGE (p:SNOMEDCT {id: line.xref})
+ON CREATE SET p.id = line.xref, p.name = line.name_xref
+CREATE (s)-[:xref]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "UMLS" THEN [1] ELSE [] END) |
+MERGE (p:Entity {id: line.xref})
+ON CREATE SET p:UMLS, p.id = line.xref, p.name = line.name_xref
+CREATE (s)-[:xref]->(p)
+)
+
+
+
+
+/* DOID - OMIM */
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/doid_omim.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "OMIM" THEN [1] ELSE [] END) |
+        MERGE (s:OMIM {id: line.id})
+                ON CREATE SET s.id = line.id
+        FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "DOID" THEN [1] ELSE [] END) |
+                MERGE (p:DOID {id: line.xref})
+                     ON CREATE SET p.id = line.xref
+         MERGE (s)-[:xref]->(p)
+        )
+)
+
+
+
+
+/* MP - HP */
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/mp_hp.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "HP" THEN [1] ELSE [] END) |
+MERGE (s:HP {id: line.id})
+ON CREATE SET s.id = line.id, s.name = line.name
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "MP" THEN [1] ELSE [] END) |
+MERGE (p:MP {mp_term: line.equivalent_to})
+ON CREATE SET p:Statement, p.mp_term = line.equivalent_to, p.name = line.name_rel
+CREATE (s)-[:equivalent_to]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "HP" THEN [1] ELSE [] END) |
+MERGE (p:HP {id: line.equivalent_to})
+ON CREATE SET p:Entity, p.id = line.equivalent_to, p.name = line.name_rel
+CREATE (s)-[:equivalent_to]->(p)
+)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "MP" THEN [1] ELSE [] END) |
+MERGE (p:MP {mp_term: line.id})
+ON CREATE SET p:Statement, p.mp_term = line.id, p.name = line.name
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "HP" THEN [1] ELSE [] END) |
+MERGE (s:HP {id: line.equivalent_to})
+ON CREATE SET s:Entity, s.id = line.equivalent_to, s.name = line.name_rel
+CREATE (s)-[:equivalent_to]->(p)
+)
+)
+
+
+
+
+
+
+/* AXIOMS MP */
+// Carrega os termos de axioms com MP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/mp_axioms.csv' AS line
+MERGE (s:MP {mp_term: line.id})
+ON CREATE SET s:Statement, s.mp_term = line.id, s.name=line.name
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CHEBI" THEN [1] ELSE [] END) |
+MERGE (p:CHEBI {id: line.rel})
+ON CREATE SET p:Entity, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CL" THEN [1] ELSE [] END) |
+MERGE (p:CL {id: line.rel})
+ON CREATE SET p:Entity, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "DOID" THEN [1] ELSE [] END) |
+MERGE (p:DOID {id: line.rel})
+ON CREATE SET p:Entity, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "FMA" THEN [1] ELSE [] END) |
+MERGE (p:FMA {id: line.rel})
+ON CREATE SET p:Entity, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "GO" THEN [1] ELSE [] END) |
+MERGE (p:GO {id: line.rel})
+ON CREATE SET p:Entity, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "MP" THEN [1] ELSE [] END) |
+MERGE (p:MP {mp_term: line.rel})
+ON CREATE SET p:Statement, p.mp_term = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "MPATH" THEN [1] ELSE [] END) |
+MERGE (p:MPATH {id: line.rel})
+ON CREATE SET p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "NBO" THEN [1] ELSE [] END) |
+MERGE (p:NBO {id: line.rel})
+ON CREATE SET p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "PATO" THEN [1] ELSE [] END) |
+MERGE (p:PATO {id: line.rel})
+ON CREATE SET p:Quality, p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "PR" THEN [1] ELSE [] END) |
+MERGE (p:PR {id: line.rel})
+ON CREATE SET p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of {relation: line.relation}]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "UBERON" THEN [1] ELSE [] END) |
+MERGE (p:Uberon {id: line.rel})
+ON CREATE SET p.id = line.rel, p.name = line.name_rel
+CREATE (s)-[:intersection_of {relation: line.relation}]->(p)
+)
+
+
+
+
+/* XREF MP */
+// Carrega os termos de xref com MP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/mp_xref.csv' AS line
+WITH line, SPLIT(line.xref, ":") AS n
+MERGE (s:MP {mp_term: line.id})
+ON CREATE SET s:Statement, s.mp_term = line.id
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "CL" THEN [1] ELSE [] END) |
+MERGE (p:CL {id: line.xref})
+ON CREATE SET p:Entity, p.id = line.xref
+CREATE (s)-[:xref]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "FMA" THEN [1] ELSE [] END) |
+MERGE (p:FMA {id: line.xref})
+ON CREATE SET p:Entity, p.id = line.xref
+CREATE (s)-[:xref]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "GO" THEN [1] ELSE [] END) |
+MERGE (p:GO {id: line.xref})
+ON CREATE SET p:Entity, p.id = line.xref
+CREATE (s)-[:xref]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "MA" THEN [1] ELSE [] END) |
+MERGE (p:MA {id: line.xref})
+ON CREATE SET p.id = line.xref
+CREATE (s)-[:xref]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "MGI" THEN [1] ELSE [] END) |
+MERGE (p:MGI {id: line.xref})
+ON CREATE SET p.id = line.xref
+CREATE (s)-[:xref]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "UMLS" THEN [1] ELSE [] END) |
+MERGE (p:Entity {id: line.xref})
+ON CREATE SET p:UMLS, p.id = line.xref, p.name = line.name_xref
+CREATE (s)-[:xref]->(p)
+)
+
+
+
+
+/* ZFA */
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zfa_intersect_of.csv' AS line
+MERGE (z:ZFA {id: line.id})
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CL" THEN [1] ELSE [] END) |
+        MERGE (s:CL {id: line.rel})
+                ON CREATE SET s.id = line.rel, s.name = line.name_rel
+         MERGE (z)-[:intersection_of]->(s)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "UBERON" THEN [1] ELSE [] END) |
+        MERGE (s:Uberon {id: line.rel})
+                ON CREATE SET s.id = line.rel, s.name = line.name_rel
+         MERGE (z)-[:intersection_of]->(s)
+)
+
+
+
+
+/* ZFA part_of */
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zfa_part_of.csv' AS line
+MERGE (z:ZFA {id: line.id})
+MERGE (s:NCBITaxon {id: line.rel})
+        ON CREATE SET s.id = line.rel
+MERGE (z)-[:part_of]->(s)
+
+
+/* ZFA property_value */
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zfa_property_value.csv' AS line
+MERGE (z:ZFA {id: line.id})
+MERGE (s:IAO {id: line.rel})
+        ON CREATE SET s.id = line.rel, s.name = line.name_rel
+MERGE (z)-[:property_value]->(s)
+
+
+// Pato is_a
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/pato_is_a.csv' AS line
+MERGE (p:PATO {id: line.id})
+MERGE (s:PATO {id: line.rel})
+FOREACH (ignoreMe IN (CASE WHEN p.id <> s.id THEN [1] ELSE [] END) |
+        MERGE (p)-[:is_a]->(s)
+)
+
+
+
+
+// HP parents
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/hp_parents.csv' AS line
+MATCH (p:HP {id: line.id}) WHERE line.id <> line.parents
+MATCH (s:HP {id: line.parents}) WHERE line.id <> line.parents
+FOREACH (ignoreMe IN (CASE WHEN p IS NOT NULL AND s IS NOT NULL THEN [1] ELSE [] END) |
+     MERGE (s)-[:is_parent]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN p IS NULL THEN [1] ELSE [] END) |
+     CREATE (p:HP {id: line.id}) 
+         FOREACH (ignoreMe IN (CASE WHEN s IS NOT NULL THEN [1] ELSE [] END) |
+             MERGE (s)-[:is_parent]->(p)
+         )
+)
+FOREACH (ignoreMe IN (CASE WHEN s IS NULL THEN [1] ELSE [] END) |
+     CREATE (s:HP {id: line.parents}) 
+         FOREACH (ignoreMe IN (CASE WHEN p IS NOT NULL THEN [1] ELSE [] END) |
+         MERGE (s)-[:is_parent]->(p)
+         )
+)
+     
+
+
+// Cria relacionamento SAME_AS em termos HP (alt_id) 2
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/hp_alt_id2.csv' AS line
+MERGE (e:HP {id: line.id})
+ON CREATE SET e.id = line.id
+MERGE (s:HP {id: line.alt_id})
+ON CREATE SET s.id = line.alt_id
+MERGE (s)-[:same_as]->(e)
+
+
+
+
+// Cria relacionamento is_a entre CL e EMAPA
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cl_emapa_is_a.csv' AS line
+MERGE (e:EMAPA {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:CL {id: line.rel})
+         ON CREATE SET s.id = line.rel, s.name = line.name_rel
+MERGE (s)-[:is_a]->(e)
+
+
+// Cria relacionamento property-value entre EMAPA e IAO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cl_emapa_property_value.csv' AS line
+MERGE (e:EMAPA {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:Entity {id: line.rel})
+         ON CREATE SET s:IAO, s.id = line.rel, s.name = line.name_rel
+MERGE (s)-[:property_value]->(e)
+
+
+
+
+// Cria relacionamento intersection_of entre CL e FMA
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cl_fma_intersection_of.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "FMA" THEN [1] ELSE [] END) |
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CL" THEN [1] ELSE [] END) |
+                 MERGE (e:FMA {id: line.id})
+                          ON CREATE SET e.id = line.id
+                 MERGE (s:CL {id: line.rel})
+                          ON CREATE SET s.id = line.rel, s.name = line.name_rel
+         MERGE (s)-[:intersection_of]->(e)
+         )
+)
+
+
+// Cria relacionamento part_of entre FMA e NCBI
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cl_fma_part_of.csv' AS line
+MERGE (e:FMA {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:NCBITaxon {id: line.rel})
+         ON CREATE SET s.id = line.rel
+MERGE (s)-[:part_of]->(e)
+
+
+
+
+// Cria relacionamento property_value entre FMA e IAO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cl_fma_property_value.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "FMA" THEN [1] ELSE [] END) |
+     FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "IAO" THEN [1] ELSE [] END) |
+                 MERGE (e:FMA {id: line.id})
+                          ON CREATE SET e.id = line.id
+                 MERGE (s:Entity {id: line.rel})
+                          ON CREATE SET s:IAO, s.id = line.rel, s.name = line.name_rel
+         MERGE (s)-[:intersection_of]->(e)
+         )
+)
+
+
+
+
+// Cria relacionamento part_of entre CL e UBERON
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cl_part_of_uberon.csv' AS line
+MERGE (e:CL {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:Uberon {id: line.rel})
+         ON CREATE SET s.id = line.rel
+MERGE (s)-[:part_of]->(e)
+
+
+
+
+// Cria relacionamento part_of entre CL e ZFA
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cl_zfa_intersection_of.csv' AS line
+MERGE (e:ZFA {id: line.id})
+         ON CREATE SET e.id = line.id
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CL" THEN [1] ELSE [] END) |
+         MERGE (s:CL {id: line.rel})
+                 ON CREATE SET s.id = line.rel, s.name = line.name_rel
+         MERGE (s)-[:intersection_of]->(e)
+)
+
+
+
+
+// Cria relacionamento part_of entre ZFA e NCBITaxon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cl_zfa_part_of.csv' AS line
+MERGE (e:ZFA {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:NCBITaxon {id: line.rel})
+         ON CREATE SET s.id = line.rel
+MERGE (s)-[:part_of]->(e)
+
+
+
+
+// Cria relacionamento property_value entre ZFA e IAO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/cl_zfa_property_value.csv' AS line
+MERGE (e:ZFA {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:IAO {id: line.rel})
+         ON CREATE SET s.id = line.rel, s.name = line.name_rel
+MERGE (s)-[:property_value]->(e)
+
+
+
+
+// Cria relacionamento property-value entre EMAPA e IAO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_emapa_property_value.csv' AS line
+MERGE (e:EMAPA {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:Entity {id: line.rel})
+         ON CREATE SET s:IAO, s.id = line.rel, s.name = line.name_rel
+MERGE (s)-[:property_value]->(e)
+
+
+
+
+// Cria relacionamento intersection_of entre EMAPA e UBERON
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_emapa_intersect_of.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "EMAPA" THEN [1] ELSE [] END) |
+         MERGE (e:EMAPA {id: line.id})
+              ON CREATE SET e.id = line.id
+     FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CL" THEN [1] ELSE [] END) |
+                 MERGE (s:CL {id: line.rel})
+                          ON CREATE SET s.id = line.rel, s.name = line.name_rel
+                  MERGE (s)-[:intersection_of]->(e)
+         )
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "UBERON" THEN [1] ELSE [] END) |
+                 MERGE (s:Uberon {id: line.rel})
+                          ON CREATE SET s.id = line.rel, s.name = line.name_rel
+                  MERGE (s)-[:intersection_of]->(e)
+         )
+)
+
+
+// Cria relacionamento part_of entre EMAPA e NABITaxon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_emapa_part_of.csv' AS line
+MERGE (e:EMAPA {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:NCBITaxon {id: line.rel})
+         ON CREATE SET s.id = line.rel
+MERGE (s)-[:part_of]->(e)
+
+
+
+
+// Cria relacionamento property-value entre MA e IAO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_ma_property_value.csv' AS line
+MERGE (e:MA {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:Entity {id: line.rel})
+         ON CREATE SET s:IAO, s.id = line.rel, s.name = line.name_rel
+MERGE (s)-[:property_value]->(e)
+
+
+
+
+// Cria relacionamento intersection_of entre UBERON e MA
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_ma_intersect_of.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "MA" THEN [1] ELSE [] END) |
+         MERGE (e:MA {id: line.id})
+              ON CREATE SET e.id = line.id
+     FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CL" THEN [1] ELSE [] END) |
+                 MERGE (s:CL {id: line.rel})
+                          ON CREATE SET s.id = line.rel, s.name = line.name_rel
+                  MERGE (s)-[:intersection_of]->(e)
+         )
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "UBERON" THEN [1] ELSE [] END) |
+                 MERGE (s:Uberon {id: line.rel})
+                          ON CREATE SET s.id = line.rel, s.name = line.name_rel
+                  MERGE (s)-[:intersection_of]->(e)
+         )
+)
+
+
+// Cria relacionamento part_of entre MA e NABITaxon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_ma_part_of.csv' AS line
+MERGE (e:MA {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:NCBITaxon {id: line.rel})
+         ON CREATE SET s.id = line.rel
+MERGE (s)-[:part_of]->(e)
+
+
+
+
+// Cria relacionamento property-value entre VSAO e IAO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_vsao_property_value.csv' AS line
+MERGE (e:VSAO {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:Entity {id: line.rel})
+         ON CREATE SET s:IAO, s.id = line.rel, s.name = line.name_rel
+MERGE (s)-[:property_value]->(e)
+
+
+
+
+// Cria relacionamento intersection_of entre UBERON e VSAO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_vsao_intersect_of.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "VSAO" THEN [1] ELSE [] END) |
+         MERGE (e:VSAO {id: line.id})
+              ON CREATE SET e.id = line.id
+     FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CL" THEN [1] ELSE [] END) |
+                 MERGE (s:CL {id: line.rel})
+                          ON CREATE SET s.id = line.rel, s.name = line.name_rel
+                  MERGE (s)-[:intersection_of]->(e)
+         )
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "UBERON" THEN [1] ELSE [] END) |
+                 MERGE (s:Uberon {id: line.rel})
+                          ON CREATE SET s.id = line.rel, s.name = line.name_rel
+                  MERGE (s)-[:intersection_of]->(e)
+         )
+)
+
+
+
+
+// Cria relacionamento property-value entre XAO e IAO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_xao_property_value.csv' AS line
+MERGE (e:XAO {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:Entity {id: line.rel})
+         ON CREATE SET s:IAO, s.id = line.rel, s.name = line.name_rel
+MERGE (s)-[:property_value]->(e)
+
+
+
+
+// Cria relacionamento intersection_of entre UBERON e XAO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_xao_intersect_of.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "XAO" THEN [1] ELSE [] END) |
+         MERGE (e:XAO {id: line.id})
+              ON CREATE SET e.id = line.id
+     FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "CL" THEN [1] ELSE [] END) |
+                 MERGE (s:CL {id: line.rel})
+                          ON CREATE SET s.id = line.rel, s.name = line.name_rel
+                  MERGE (s)-[:intersection_of]->(e)
+         )
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_rel = "UBERON" THEN [1] ELSE [] END) |
+                 MERGE (s:Uberon {id: line.rel})
+                          ON CREATE SET s.id = line.rel, s.name = line.name_rel
+                  MERGE (s)-[:intersection_of]->(e)
+         )
+)
+
+
+// Cria relacionamento part_of entre XAO e NABITaxon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/uberon_xao_part_of.csv' AS line
+MERGE (e:XAO {id: line.id})
+         ON CREATE SET e.id = line.id
+MERGE (s:NCBITaxon {id: line.rel})
+         ON CREATE SET s.id = line.rel
+MERGE (s)-[:part_of]->(e)
+
+
+
+
+// Cria termos ZP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+MATCH (z:ZP {id: line.id})
+FOREACH (ignoreMe IN (CASE WHEN z IS NOT NULL THEN [1] ELSE [] END) |
+        SET z.name = line.name
+)
+FOREACH (ignoreMe IN (CASE WHEN z IS NULL THEN [1] ELSE [] END) |
+        CREATE (z:ZP {id: line.id, name: line.name})
+)
+
+
+
+
+// Cria termos ZDB_GENE  e faz ligação com ZP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot.csv' AS line FIELDTERMINATOR '\t'
+MERGE (z:ZDB_GENE {id: line.gene_id})
+         ON CREATE SET z.id = line.gene_id
+MERGE (s:ZP {id: line.id_zp})
+     ON CREATE SET s.id = line.id_zp, s.name = line.name_id
+MERGE (z)-[:has_phenotype]->(s)
+
+
+
+
+CREATE CONSTRAINT ON (z:ZP) ASSERT z.id IS UNIQUE
+
+
+CREATE CONSTRAINT ON (z:ZDB_gene) ASSERT z.id IS UNIQUE
+
+
+CREATE CONSTRAINT ON (z:BSPO) ASSERT z.id IS UNIQUE
+
+
+/*  LIGA ZP COM OS TERMOS ENTITY E QUALITY  */
+
+
+// Liga ZP em Quality
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 
+'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+MATCH (s:ZP {id: line.id})
+MATCH (q:PATO {id: line.quality})
+CREATE (s)-[:has_quality]->(q)
+
+
+// Liga ZP em Quality2
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 
+'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+MATCH (s:ZP {id: line.id})
+MATCH (q:PATO {id: line.quality2})
+CREATE (s)-[:has_quality]->(q)
+
+
+//Verifica se todos os termos existem no grafo, se não existir cria
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+WITH line, SPLIT(line.superterm1, ":") AS name
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "GO" THEN [1] ELSE [] END) |
+    MERGE (n:GO {id: line.superterm1})
+              ON CREATE SET n:Entity, n.id = line.superterm1
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "ZFA" THEN [1] ELSE [] END) |
+    MERGE (n:ZFA {id: line.superterm1})
+              ON CREATE SET n:Entity, n.id = line.superterm1
+)
+
+
+
+
+// Liga ZP em Superterm1
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+MERGE (e1:Entity {id: line.superterm1})
+  ON CREATE SET e1 :GenericEntity 
+WITH e1, line
+MATCH (s:ZP {id: line.id})
+CREATE (s)-[:has_entity {type: "super1"}]->(e1)
+
+
+
+
+//Verifica se todos os termos superterm2 existem no grafo, se não existir cria
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+WITH line, SPLIT(line.superterm2, ":") AS name
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "BSPO" THEN [1] ELSE [] END) |
+    MERGE (n:Entity {id: line.superterm2})
+              ON CREATE SET n:BSPO, n.id = line.superterm2
+    SET n:BSPO
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "ZFA" THEN [1] ELSE [] END) |
+    MERGE (n:ZFA {id: line.superterm2})
+              ON CREATE SET n:Entity, n.id = line.superterm2
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "GO" THEN [1] ELSE [] END) |
+    MERGE (n:GO {id: line.superterm2})
+              ON CREATE SET n:Entity, n.id = line.superterm2
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "ZFA" THEN [1] ELSE [] END) |
+    MERGE (n:ZFA {id: line.superterm2})
+              ON CREATE SET n:Entity, n.id = line.superterm2
+)
+
+
+
+
+% Liga ZP em Superterm2
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+MATCH (e2:Entity {id: line.superterm2})
+MATCH (s:ZP {id: line.id})
+CREATE (s)-[:has_entity {type: "super2"}]->(e2)
+
+
+
+
+//Verifica se todos os termos subterm1 existem no grafo, se não existir cria
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+WITH line, SPLIT(line.subterm1, ":") AS name
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "ZFA" THEN [1] ELSE [] END) |
+    MERGE (n:ZFA {id: line.subterm1})
+              ON CREATE SET n:Entity, n.id = line.subterm1
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "GO" THEN [1] ELSE [] END) |
+    MERGE (n:GO {id: line.subterm1})
+              ON CREATE SET n:Entity, n.id = line.subterm1
+)
+
+
+
+
+
+
+// Liga ZP em Subterm1
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+MATCH (e2:Entity {id: line.subterm1})
+MATCH (s:ZP {id: line.id})
+CREATE (s)-[:has_entity {type: "sub1"}]->(e2)
+
+
+
+
+
+
+//Verifica se todos os termos subterm2 existem no grafo, se não existir cria
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+WITH line, SPLIT(line.subterm2, ":") AS name
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "BSPO" THEN [1] ELSE [] END) |
+    MERGE (n:Entity {id: line.subterm2})
+              ON CREATE SET n:BSPO, n.id = line.subterm2
+    SET n:BSPO
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "ZFA" THEN [1] ELSE [] END) |
+    MERGE (n:ZFA {id: line.subterm2})
+              ON CREATE SET n:Entity, n.id = line.subterm2
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "GO" THEN [1] ELSE [] END) |
+    MERGE (n:GO {id: line.subterm2})
+              ON CREATE SET n:Entity, n.id = line.subterm2
+)
+
+
+
+
+
+
+// Liga ZP em Subterm2
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_annot_sourceinfo.csv' AS line FIELDTERMINATOR '\t'
+MATCH (e2:Entity {id: line.subterm2})
+MATCH (s:ZP {id: line.id})
+CREATE (s)-[:has_entity {type: "sub2"}]->(e2)
+
+
+
+
+// Cria termos ZDB_FISH  e faz ligação com ZP
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberpheno/zp_zda_fish.csv' AS line 
+MERGE (z:ZDB_FISH {id: line.id})
+     ON CREATE SET z.id = line.id
+MERGE (s:ZP {id: line.zp})
+     ON CREATE SET s.id = line.zp, s.name = line.name
+MERGE (z)-[:has_phenotype]->(s)
+
+
+
+
+
+
+//
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'https://www.dropbox.com/s/2xx7l2rbxpndm9s/XAO.csv?dl=1' AS line
+WITH line, SPLIT(line.cross, ":") AS n
+MERGE (s:XAO {id: line.id})
+         ON CREATE SET s:Entity, s.id = line.id, s.name = line.name, s.definition = line.Definitions, s.obsolete = line.Obsolete
+FOREACH (ignoreMe IN (CASE WHEN n[0] = "UBERON" THEN [1] ELSE [] END) |
+         MERGE (p:Uberon {id: line.cross})
+                  ON CREATE SET p:Entity, p.id = line.cross
+         CREATE (s)-[:cross]->(p)
+)

@@ -1,0 +1,89 @@
+﻿ /***************************************************************************
+ *   Copyright (C) 2017 by Luana Loubet Borges, André Santanchè
+ *   Authors: Luana Loubet - luanaloubet@gmail.com
+ *	      André Santanchè - santanche@ic.unicamp.br
+ *	      
+ *   
+ *    This file is part of BioGraph.
+ *
+ *   BioGraph is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   Foobar is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+ ****************************************************************************/	
+
+
+
+﻿Scripts to import MGI to Neo4j
+
+
+Dados retirados do Intermine através do link: http://www.mousemine.org/mousemine/begin.do
+Dados: http://www.lis.ic.unicamp.br/~luana/data_biograph_csv/data_MGI/
+
+
+
+
+
+
+
+
+
+MGI
+
+
+% Carregar MP_term
+USING PERIODIC COMMIT
+LOAD CSV
+WITH HEADERS FROM 'http://localhost/data-phenotypes-mines/MGI/mgi-mp-term-basic.csv' AS line
+CREATE (m:Statement:MP { mp_term: line.term_id, name: line.name, description: line.description, namespace: line.namespace, obsolete: line.obsolete})
+
+
+% Define o ID do MP como único e cria um índice para o ID
+CREATE CONSTRAINT ON (m:MP) ASSERT m.mp_term IS UNIQUE
+
+
+% Link com sinonimos
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://localhost/data-phenotypes-mines/MGI/mgi_synonym.csv' AS line
+MATCH (p:MP { mp_term: line.term_id })
+// Quando é sinonimo cria um nó sinonimo (LabelStatement) e liga com p
+FOREACH (ignoreMe IN CASE WHEN line.syn_type = "synonym" THEN [1] ELSE [] END |
+  MERGE (s:Label:LabelStatement {name: line.syn_name})
+  CREATE UNIQUE (s)-[:is_synonym]->(p)
+)
+// Quando é alternativo (alt_id) cria um nó MP e liga com p
+FOREACH (ignoreMe IN CASE WHEN line.syn_type = "alt_id" THEN [1] ELSE [] END |
+  MERGE (m:MP {mp_term: line.syn_name})
+  CREATE UNIQUE (m)-[:same_as]->(p)
+)
+
+
+% Define o name do LabelStatement como único e cria um índice para o name
+CREATE CONSTRAINT ON (s:LabelStatement) ASSERT s.name IS UNIQUE
+
+
+% Carrega parents e liga os pais ao seus filhos
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://localhost/data-phenotypes-mines/MGI/mgi_parents.csv' AS line FIELDTERMINATOR '\t'
+MERGE (super:MP {mp_term: line.parents_id})
+         ON CREATE SET super.mp_term = line.parents_id, super.name = line.parents_name, super.description = line.parents_description
+WITH line, super
+MATCH (m:MP { mp_term: line.term_id }) WHERE line.term_id <> line.parents_id
+CREATE UNIQUE (super)-[:is_parent]->(m)
+
+
+
+
+
+
+% Adicionando o label:Statement_EQ para :Statement
+MATCH (g:Statement)
+SET g :Statement_EQ

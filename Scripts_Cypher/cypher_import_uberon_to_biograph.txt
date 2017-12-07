@@ -1,0 +1,527 @@
+﻿ /***************************************************************************
+ *   Copyright (C) 2017 by Luana Loubet Borges, André Santanchè
+ *   Authors: Luana Loubet - luanaloubet@gmail.com
+ *	      André Santanchè - santanche@ic.unicamp.br
+ *	      
+ *   
+ *    This file is part of BioGraph.
+ *
+ *   BioGraph is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   Foobar is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+ ****************************************************************************/	
+
+
+Scripts to import Uberon to Neo4j
+
+
+
+
+// Cria termos Uberon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon-new.csv' AS line
+WITH line, SPLIT(line.id, ":") AS name
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "BFO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:BFO, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "CARO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:CARO, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "CHEBI" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:CHEBI, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "CL" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:CL, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "ENVO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:ENVO, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "FBbt" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:FBbt, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "GO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:GO, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "NBO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:NBO, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "NCBITaxon" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:NCBITaxon, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "PATO" THEN [1] ELSE [] END)|
+   MERGE (e:Quality {id: line.id})
+           ON CREATE SET e:PATO, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "PR" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:PR, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "UBERON" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:Uberon, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "XAO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:XAO, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+FOREACH (ignoreMe IN (CASE WHEN name[0] = "ZFA" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.id})
+           ON CREATE SET e:ZFA, e.id = line.id, e.uri = line.uri, e.name = line.label, e.description = line.definitions
+)
+
+
+// Define o ID do Uberon como único e cria um índice para o ID
+CREATE CONSTRAINT ON (u:Uberon) ASSERT u.id IS UNIQUE
+
+
+// Define o ID do BFO como único e cria um índice para o ID
+CREATE CONSTRAINT ON (b:BFO) ASSERT b.id IS UNIQUE
+
+
+// Define o ID do CARO como único e cria um índice para o ID
+CREATE CONSTRAINT ON (c:CARO) ASSERT c.id IS UNIQUE
+
+
+// Define o ID do CHEBI como único e cria um índice para o ID
+CREATE CONSTRAINT ON (c:CHEBI) ASSERT c.id IS UNIQUE
+
+
+// Define o ID do CL como único e cria um índice para o ID
+CREATE CONSTRAINT ON (c:CL) ASSERT c.id IS UNIQUE
+
+
+// Define o ID do ENVO como único e cria um índice para o ID
+CREATE CONSTRAINT ON (c:ENVO) ASSERT c.id IS UNIQUE
+
+
+// Define o ID do CHEBI como único e cria um índice para o ID
+CREATE CONSTRAINT ON (c:FBbt) ASSERT c.id IS UNIQUE
+
+
+// Define o ID do NBO como único e cria um índice para o ID
+CREATE CONSTRAINT ON (c:NBO) ASSERT c.id IS UNIQUE
+
+
+// Define o ID do PR como único e cria um índice para o ID
+CREATE CONSTRAINT ON (c:PR) ASSERT c.id IS UNIQUE
+
+
+// Define o ID do XAO como único e cria um índice para o ID
+CREATE CONSTRAINT ON (c:XAO) ASSERT c.id IS UNIQUE
+
+
+/*  PARENTS  */
+% Liga termos Uberon que é Entity com os pais
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_parents.csv' AS line
+MATCH (e:Entity {id: line.id})
+MATCH (super:Entity {id: line.parents}) WHERE line.id <> line.parents AND line.parents <> "http:" AND line.parents <> "owl#Thing" AND line.parents <>"www3.org" AND line.parents <> "2002" AND line.parents <> "7"
+MATCH (super)-[r:is_parent]->(e)
+FOREACH (ignoreMe IN (CASE WHEN  r is NULL THEN [1] ELSE [] END)|
+          CREATE (super)-[r:is_parent]->(e)
+)
+
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_parents.csv' AS line
+MATCH (e:Uberon {id: line.id})
+MATCH (super:Uberon {id: line.parents}) WHERE line.id <> line.parents AND line.parents <> "http:" AND line.parents <> "owl#Thing" AND line.parents <>"www3.org" AND line.parents <> "2002" AND line.parents <> "7"
+MERGE (super)-[:is_parent]->(e)
+
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_parents.csv' AS line
+MATCH (e:CHEBI {id: line.id})
+MATCH (super:CHEBI {id: line.parents}) WHERE line.namespace = "CHEBI" AND line.id <> line.parents AND line.parents <> "http:" AND line.parents <> "owl#Thing" AND line.parents <>"www3.org" AND line.parents <> "2002" AND line.parents <> "7"
+MERGE (super)-[:is_parent]->(e)
+
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_parents.csv' AS line
+MATCH (e:GO {id: line.id})
+MATCH (super:GO {id: line.parents}) WHERE line.namespace = "GO" AND line.id <> line.parents AND line.parents <> "http:" AND line.parents <> "owl#Thing" AND line.parents <>"www3.org" AND line.parents <> "2002" AND line.parents <> "7"
+MERGE (super)-[:is_parent]->(e)
+
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_parents.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "NCBITaxon" AND line.id <> line.parents AND line.parents <> "http:" AND line.parents <> "owl#Thing" AND line.parents <>"www3.org" AND line.parents <> "2002" AND line.parents <> "7" THEN [1] ELSE [] END)|
+         MERGE (e:NCBITaxon {id: line.id})
+         MERGE (super:NCBITaxon {id: line.parents})
+      MERGE (super)-[r:is_parent]->(e)
+)
+
+
+
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_parents.csv' AS line
+MATCH (e:PR {id: line.id})
+MATCH (super:PR {id: line.parents}) WHERE line.id <> line.parents AND line.parents <> "http:" AND line.parents <> "owl#Thing" AND line.parents <>"www3.org" AND line.parents <> "2002" AND line.parents <> "7"
+MERGE(super)-[:is_parent]->(e)
+
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_parents.csv' AS line
+MATCH (e:NBO {id: line.id})
+MATCH (super:NBO {id: line.parents}) WHERE line.id <> line.parents AND line.parents <> "http:" AND line.parents <> "owl#Thing" AND line.parents <>"www3.org" AND line.parents <> "2002" AND line.parents <> "7"
+MERGE (super)-[:is_parent]->(e)
+
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_parents.csv' AS line
+MATCH (e:CL {id: line.id})
+MATCH (super:CL {id: line.parents}) WHERE line.id <> line.parents AND line.parents <> "http:" AND line.parents <> "owl#Thing" AND line.parents <>"www3.org" AND line.parents <> "2002" AND line.parents <> "7"
+MERGE (super)-[:is_parent]->(e)
+
+
+
+
+// Liga termos PATO de Uberon com os pais
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_parents.csv' AS line
+MATCH (e:Quality {id: line.id})
+MATCH (super:Quality {id: line.parents}) WHERE line.id <> line.parents AND line.parents <> "http:" AND line.parents <> "owl#Thing" AND line.parents <>"www3.org" AND line.parents <> "2002" AND line.parents <> "7"
+MERGE (super)-[:is_parent]->(e)
+
+
+
+
+/* SYNONYM */
+// Carrega os sinonimos de Uberon e faz suas ligações
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_synonym.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "CL" THEN [1] ELSE [] END) |
+ MERGE (p:CL {id: line.id })
+         ON CREATE SET p:Entity, p.id = line.id
+  MERGE (s:Label:LabelEntity {name: line.synonym})
+         ON CREATE SET s.name = line.synonym
+   MERGE (s)-[:is_synonym]->(p)
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "UBERON" THEN [1] ELSE [] END) |
+ MERGE (p:Uberon {id: line.id})
+         ON CREATE SET p.id = line.id, p:Entity
+  MERGE (s:Label:LabelEntity {name: line.synonym})
+         ON CREATE SET s.name = line.synonym
+   MERGE (s)-[:is_synonym]->(p)
+)
+
+
+
+
+// Carrega os alt_id de Uberon e faz suas ligações
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_alternative_id.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "CL" THEN [1] ELSE [] END) |
+  MERGE (p:CL {id: line.id})
+         ON CREATE SET p:Entity, p.id = line.id
+  MERGE (s:CL {id: line.alt_id}) 
+      ON CREATE SET s:Entity, s.id = line.alt_id
+ MERGE (s)-[:same_as]->(p)
+)
+// Liga Uberon com Uberon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_alternative_id.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "UBERON" THEN [1] ELSE [] END) |
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt_id = "UBERON" THEN [1] ELSE [] END) |
+           MERGE (p:Uberon {id: line.id})
+                  ON CREATE SET p:Entity, p.id = line.id
+           MERGE (s:Uberon {id: line.alt_id})
+                  ON CREATE SET s:Entity, s.id = line.alt_id
+       MERGE (s)-[:same_as]->(p)
+   )
+)
+// Liga Uberon com AEO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_alternative_id.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "UBERON" THEN [1] ELSE [] END) |
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt_id = "AEO" THEN [1] ELSE [] END) |
+           MERGE (p:Uberon {id: line.id})
+                  ON CREATE SET p:Entity, p.id = line.id
+           MERGE (s:Entity:AEO {id: line.alt_id})
+                  ON CREATE SET s.id = line.alt_id
+       MERGE (s)-[:same_as]->(p)
+        )
+)
+// Liga Uberon com EHDAA2
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_alternative_id.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "UBERON" THEN [1] ELSE [] END) |
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt_id = "EHDAA2" THEN [1] ELSE [] END) |
+           MERGE (p:Uberon {id: line.id})
+                  ON CREATE SET p:Entity, p.id = line.id
+           MERGE (s:Entity:EHDAA2 {id: line.alt_id})
+                   ON CREATE SET s.id = line.alt_id
+       MERGE (s)-[:same_as]->(p)
+        )
+)
+// Liga Uberon com ZFA
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_alternative_id.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "UBERON" THEN [1] ELSE [] END) |
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt_id = "ZFA" THEN [1] ELSE [] END) |
+           MERGE (p:Uberon {id: line.id})
+                      ON CREATE SET p:Entity, p.id = line.id
+           MERGE (s:Entity:ZFA {id: line.alt_id})
+                      ON CREATE SET s.id = line.alt_id
+       MERGE (s)-[:same_as]->(p)
+        )
+)
+// Liga Uberon com EMAPA
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_alternative_id.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "UBERON" THEN [1] ELSE [] END) |
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_alt_id = "EMAPA" THEN [1] ELSE [] END) |
+           MERGE (p:Uberon {id: line.id})
+                      ON CREATE SET p:Entity, p.id = line.id
+           MERGE (s:Entity:EMAPA {id: line.alt_id})
+                      ON CREATE SET s.id = line.alt_id
+       MERGE (s)-[:same_as]->(p)
+   )
+)
+
+
+
+
+// Carrega os Part_OF
+// Liga CL com Uberon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_part_of.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "CL" THEN [1] ELSE [] END) |
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_part_of = "UBERON" THEN [1] ELSE [] END) |
+           MERGE (p:CL {id: line.id})
+                  ON CREATE SET p.id = line.id
+           MERGE (s:Uberon {id: line.part_of})
+                  ON CREATE SET s.id = line.part_of
+       MERGE (s)-[:part_of]->(p)
+         )
+)
+// Liga GO com GO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_part_of.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "GO" THEN [1] ELSE [] END) |
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_part_of = "GO" THEN [1] ELSE [] END) |
+           MERGE (p:GO {id: line.id})
+                  ON CREATE SET p.id = line.id
+           MERGE (s:GO {id: line.part_of})
+                  ON CREATE SET s.id = line.part_of
+       MERGE (s)-[:part_of]->(p)
+         )
+)
+// Liga Uberon com Uberon
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_part_of.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace = "UBERON" THEN [1] ELSE [] END) |
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_part_of = "UBERON" THEN [1] ELSE [] END) |
+           MERGE (p:Uberon {id: line.id})
+                  ON CREATE SET p.id = line.id
+           MERGE (s:Uberon {id: line.part_of})
+                  ON CREATE SET s.id = line.part_of
+       MERGE (s)-[:part_of]->(p)
+         )
+)
+
+
+
+
+
+
+// Cria termos que estão no data_cross
+// O MESMO foi feito para: BM, EMAPA, EHDAA2, MESH, EFO, MA, EV, GAID, HBA, DMBA, VHOG, AAO, EHDAA, VSAO, WBbt, MFMO, KUPO,CALOHA, CP,
+UBERONTEMP, OpenCyc foi p nó temp
+
+
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_data_cross.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "BTO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:BTO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "PBA" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:PBA, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "FAO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:FAO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "UMLS" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:UMLS, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "MBA" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:MBA, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "DHBA" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:DHBA, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "BAMS" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:BAMS, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "FMA" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:FMA, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross  = "BFO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:BFO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "CARO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:CARO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "CHEBI" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:CHEBI, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "CL" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:CL, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "ENVO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:ENVO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "FBbt" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:FBbt, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "GO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:GO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "NBO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:NBO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "NCBI" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:NCBI, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "PR" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:PR, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "UBERON" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:Uberon, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "XAO" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:XAO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "ZFA" THEN [1] ELSE [] END)|
+   MERGE (e:Entity {id: line.data_cross})
+           ON CREATE SET e:ZFA, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "BM" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:BM, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "EMAPA" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:EMAPA, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "EHDAA2" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:EHDAA2, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "MESH" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:MESH, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "EFO" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:EFO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "MA" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:MA, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "EV" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:EV, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "GAID" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:GAID, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "HBA" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:HBA, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "DEFO" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:DEFO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "VHOG" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:VHOG, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "CL" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:CL, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "EHDAA" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:EHDAA, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "VSAO" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:VSAO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "WBbt" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:WBbt, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "KUPO" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:KUPO, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "CP" THEN [1] ELSE [] END)|
+        MERGE (e:Entity {id: line.data_cross})
+                 ON CREATE SET e:CP, e.id = line.data_cross
+)
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross = "MFMO" OR line.namespace_cross = "CALOHA" OR line.namespace_cross = "UBERONTEMP" OR line.namespace_cross = "OpenCyc" THEN [1] ELSE [] END)|
+        MERGE (e:temp {id: line.data_cross})
+                 ON CREATE SET e:temp, e.id = line.data_cross
+)
+
+
+
+
+
+
+// Liga termos Uberon com data_cross
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/csv/uberon/uberon_data_cross.csv' AS line
+FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross<>"MP" AND line.namespace_cross<>"WBls" AND line.namespace_cross<>"DMBA" AND line.namespace_cross<>"MAT" THEN [1] ELSE [] END)|
+         MERGE (e:Entity {id: line.id})
+              ON CREATE SET e.id = line.id
+         FOREACH (ignoreMe IN (CASE WHEN line.namespace_cross<>"MP" AND                           line.namespace_cross<>"WBls"  AND line.namespace_cross<>"DMBA" AND line.namespace_cross<>"MAT" THEN [1] ELSE [] END)|
+                  MERGE (super:Entity {id: line.data_cross})
+                           ON CREATE SET e.id = line.data_cross
+              MERGE (super)-[:cross]->(e)
+         )
+)

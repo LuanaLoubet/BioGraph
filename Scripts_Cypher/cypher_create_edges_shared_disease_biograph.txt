@@ -1,0 +1,37 @@
+﻿ /***************************************************************************
+ *   Copyright (C) 2017 by Luana Loubet Borges, André Santanchè
+ *   Authors: Luana Loubet - luanaloubet@gmail.com
+ *	      André Santanchè - santanche@ic.unicamp.br
+ *	      
+ *   
+ *    This file is part of BioGraph.
+ *
+ *   BioGraph is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   Foobar is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+ ****************************************************************************/	
+
+
+﻿To Create Edges -- Shared_Disease
+// Cria arestas entre sintomas que compartilhem doenças. Essa aresta terá um atributo n que contém o número de doenças que esses sintomas compartilham:
+Aresta criada com nome: SHARED_DISEASE
+
+
+// Cria arestas entre Sintoma e Uberon para poder contar quantas entidades existem entre dois sintomas.
+Aresta criada com nome: related_with
+
+
+-> Cria arestas entre sintomas que compartilhem Entidades. Dois sintomas compartilham uma entidade se: (s1:SYMP)-->(d:DOID)<--(u:Uberon)-->(d2:DOID)<--(s2:SYMP). Essa aresta terá um atributo n que contém o número de entidades que esses sintomas compartilham.
+Aresta criada com nome: SHARED_ENTITY
+
+
+PS: Para ver as consultas usadas para criar essas arestas, veja a nota Shared Symptoms

@@ -1,0 +1,147 @@
+﻿ /***************************************************************************
+ *   Copyright (C) 2017 by Luana Loubet Borges, André Santanchè
+ *   Authors: Luana Loubet - luanaloubet@gmail.com
+ *	      André Santanchè - santanche@ic.unicamp.br
+ *	      
+ *   
+ *    This file is part of BioGraph.
+ *
+ *   BioGraph is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   Foobar is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+ ****************************************************************************/	
+
+
+
+﻿Create the nodes Generic_EQ
+
+
+CREATE CONSTRAINT ON (geq:Generic_EQ) ASSERT geq.name IS UNIQUE
+
+
+// Gera novos nós Generic_EQ que tem uma entidade e uma qualidade e se liga no ZP que tem a mesma entidade e a mesma qualidade
+MATCH  (p:PATO)<-[t]-(z:ZP)-[r]->(q:ZFA)-[s]->(u:Uberon) WHERE not (has (p.root))
+MERGE (p)<-[r1:has_quality]-(m:Generic_EQ {name: u.name+" "+p.name})-[r3:has_entity]->(u)
+     ON CREATE SET m.name = u.name+" "+p.name
+MERGE (m)-[r4:generalizes]->(z)
+
+
+
+
+// Consulta se a consulta acima está correta
+MATCH  (p:PATO)<-[t]-(z:ZP)-[r]->(q:ZFA)-[s]->(u:Uberon) WHERE not (has (p.root))
+match (p)<-[r1:has_quality]-(m:Generic_EQ)-[r3:has_entity]->(u)
+return p,m,u limit 20
+
+
+
+
+// Gera novos nós Generic_EQ que tem uma entidade e uma qualidade e se liga no MP que tem a mesma entidade e a mesma qualidade
+MATCH  (p:PATO)<-[t]-(z:MP)-[r]->(u:Uberon) WHERE not (has (p.root))
+MERGE (p)<-[r1:has_quality]-(m:Generic_EQ {name: u.name+" "+p.name}) -[r3:has_entity]->(u)
+     ON CREATE SET m.name = u.name+" "+p.name
+MERGE (m)-[r4:generalizes]->(z)
+
+
+
+
+//Confere se tem Generic_EQ repetidos
+MATCH (n:Generic_EQ)
+MATCH (m:Generic_EQ) WHERE n.name = m.name AND n.id<>m.id
+return n,m
+
+
+
+
+// Gera novos nós Generic_EQ que tem uma entidade e uma qualidade e se liga no HP que tem a mesma entidade e a mesma qualidade
+MATCH  (p:PATO)<-[t]-(z:HP)-[r]->(u:Uberon) WHERE not (has (p.root))
+MERGE (p)<-[r1:has_quality]-(m:Generic_EQ {name: u.name+" "+p.name}) -[r3:has_entity]->(u)
+     ON CREATE SET m.name = u.name+" "+p.name
+MERGE (m)-[r4:generalizes]->(z)
+
+
+
+
+MATCH  (p:PATO)<-[t]-(z)-[r]->(u:Uberon) WHERE not (has (p.root)) AND (not (z:ZP)) AND (not(z:MP)) AND (not(z:HP)) AND (not(z:Generic_EQ))
+return p,t,z,r,u limit 50
+
+
+
+
+// Quando um ZP/MP/HP tem ligaçao com mais de um pato não tenho que criar um generic_eq para cada pato, tenho que colocar os dois patos em um mesmo generic_eq. Essa query resolve este problema que existia no grafo
+MATCH  (p1:PATO)<-[t]-(g1:Generic_EQ)-[t2]->(u:Uberon)
+MATCH  (p2:PATO)<-[t1]-(g2:Generic_EQ)-[t3]->(u) WHERE id(g1) <> id(g2) AND p1.id <> p2.id
+// Retorna o ZP/HP ou MP ao qual o Generic_EQ se originou
+MATCH (g1)-[r3:generalizes]->(n)
+MATCH (g2)-[r4:generalizes]->(m) WHERE n.id = m.id
+MERGE (p1)<-[r2:has_quality]-(m2:Generic_EQ {name:p1.name+" "+p2.name+" "+u.name})-[r6:has_entity]->(u)
+     ON CREATE SET m2.name = p1.name+" "+p2.name+" "+u.name
+MERGE (p2)<-[r5:has_quality]-(m2)-[r7:generalizes]->(n)
+MERGE (g1)<-[:apagar]-(m2)-[:apagar]->(g2)
+
+
+// Apaga os nós g1 e g2
+MATCH(n)-[r:apagar]->(m)-[r2]-(p)
+delete r2,r,m
+delete t,t1,t2,t3,r3,r4,g1,g2
+
+
+// Procura um caminho que contenha Generic_EQ
+MATCH (z:ZP)-->(p:PATO)<--(g:Generic_EQ)-->(u:Uberon)
+MATCH (m:MP)-->(p)<--(g)-->(m)
+RETURN z,p,g,u,m limit 10
+
+
+// Retorna arestas entre termos que são "os mesmos" através do generic_eq
+MATCH (n)<-[r1:generalizes]-(g)-[r2:generalizes]->(m) WHERE labels(n) <> labels(m) AND n.id<>m.id
+RETURN n,g,m limit 4
+
+
+// Cria arestas entre termos que "são os mesmos" através do generic_eq
+MATCH (n)<-[r1:generalizes]-(g)-[r2:generalizes]->(m) WHERE labels(n) <> labels(m) AND n.id<>m.id
+MERGE (n)-[r3:by_generic_eq]-(m)
+//Created 1682 relationships
+
+
+//Retorna nós que tem arestas do tipo by_generic_eq
+MATCH (n:HP)-[r:by_generic_eq]-(m:MP) return count(r)
+// Retornou 1559
+
+
+//Retorna nós que já tinham arestas entre eles, antes de ter o by_generic_eq
+MATCH (n:HP)-[r]-(m:MP)
+MATCH (n)-[r3:by_generic_eq]-(m) WHERE type(r)<>type(r3)  return count (r3)
+//retornou 265
+
+
+--> Então, criamos 1559 - 265 arestas = 1294
+
+
+// Retorna  o caminho que tem um HP ligado com ZP e MP
+MATCH (z:ZP)-[r1]-(h:HP)-[r2]-(m:MP)
+return z,r1,h,r2,m
+
+
+// Cria arestas entre ZP e MP por transitividade
+MATCH (z:ZP)-[r1]-(h:HP)-[r2]-(m:MP)
+MERGE (z)-[r:by_transitivity]-(m)
+// Created 22894 relationships
+
+
+
+
+
+
+FBbt (DROSOPHILA) tem relacionamento com uberon
+
+
+--> Ligar MP com Fish

@@ -1,0 +1,202 @@
+﻿ /***************************************************************************
+ *   Copyright (C) 2017 by Luana Loubet Borges, André Santanchè
+ *   Authors: Luana Loubet - luanaloubet@gmail.com
+ *	      André Santanchè - santanche@ic.unicamp.br
+ *	      
+ *   
+ *    This file is part of BioGraph.
+ *
+ *   BioGraph is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   Foobar is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+ ****************************************************************************/	
+
+
+
+
+﻿Scripts to import ZFIN to Neo4j
+
+
+% Cria termos PATO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/pato.csv' AS line
+CREATE (p:Quality:PATO {id: line.identifier, name: line.name, description: line.description})
+
+
+% Define o ID do PATO como único e cria um índice para o ID
+CREATE CONSTRAINT ON (p:PATO) ASSERT p.id IS UNIQUE
+
+
+% Liga termos PATO com os pais
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/pato-parents.csv' AS line
+MATCH (p:PATO {id: line.identifier})
+MATCH (super:PATO {id: line.parent}) WHERE line.identifier <> line.parent
+CREATE (super)-[:is_parent]->(p)
+
+
+% Cria termos ZFA
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/zfa.csv' AS line
+CREATE (z:Entity:ZFA {id: line.identifier, name: line.name, description: line.description})
+
+
+% Define o ID do ZFA como único e cria um índice para o ID
+CREATE CONSTRAINT ON (z:ZFA) ASSERT z.id IS UNIQUE
+ 
+% Liga termos ZFA com os pais
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/zfa-parents.csv' AS line
+MATCH (z:ZFA {id: line.identifier})
+MATCH (super:ZFA {id: line.parent}) WHERE line.identifier <> line.parent
+CREATE (super)-[:is_parent]->(z)
+
+
+
+
+% Cria termos GO
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/go.csv' AS line
+CREATE (g:Entity:GO {id: line.identifier, name: line.name, description: line.description})
+
+
+% Define o ID do GO como único e cria um índice para o ID 
+CREATE CONSTRAINT ON (g:GO) ASSERT g.id IS UNIQUE
+ 
+% Liga termos GO com os pais
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/go-parents.csv' AS line
+MATCH (g:GO {id: line.identifier})
+MATCH (super:GO {id: line.parent}) WHERE line.identifier <> line.parent
+CREATE (super)-[:is_parent]->(g)
+
+
+// Agora que eu mudei o id de PATO para pato_id esse indíce continua funcionando ?
+No PATO não deu certo, coloquei q.pato_id
+% Define o ID da Quality como único e cria um índice para o ID
+CREATE CONSTRAINT ON (q:Quality) ASSERT q.id IS UNIQUE
+
+
+// Devolve que nao foi criado
+% Define o ID da Entity como único e cria um índice para o ID
+CREATE CONSTRAINT ON (e:Entity) ASSERT e.id IS UNIQUE
+
+
+% Cria um Statement_EQ
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/statement-entity-quality.csv' AS line
+CREATE (s:Statement_EQ {id: line.identifier, tag: line.tag, monogenic: line.monogenic})
+
+
+% Define o ID do Statement como único e cria um índice para o ID 
+CREATE CONSTRAINT ON (s:Statement_EQ) ASSERT s.id IS UNIQUE
+ 
+% Liga Statement_EQ em Quality
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/statement-entity-quality.csv' AS line
+MERGE (q:Quality {id: line.quality})
+  ON CREATE SET q :GenericQuality
+WITH q, line
+MATCH (s:Statement_EQ {id: line.identifier})
+CREATE (s)-[:has_quality]->(q)
+
+
+% Liga Statement em Superterm1
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/statement-entity-quality.csv' AS line
+MERGE (e1:Entity {id: line.superterm1})
+  ON CREATE SET e1 :GenericEntity 
+WITH e1, line
+MATCH (s:Statement_EQ {id: line.identifier})
+CREATE (s)-[:has_entity {type: "super1"}]->(e1)
+
+
+% Liga Statement em Superterm2
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/statement-entity-quality.csv' AS line
+MERGE (e2:Entity {id: line.superterm2})
+  ON CREATE SET e2 :GenericEntity, e2.id = line.superterm2
+WITH e2, line
+MATCH (s:Statement_EQ {id: line.identifier})
+CREATE (s)-[:has_entity {type: "super2"}]->(e2)
+
+
+% Liga Statement em Subterm1
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/statement-entity-quality.csv' AS line
+MERGE (e3:Entity {id: line.subterm1})
+  ON CREATE SET e3 :GenericEntity, e3.id=line.subterm1
+WITH e3, line
+MATCH (s:Statement_EQ {id: line.identifier})
+CREATE (s)-[:has_entity {type: "sub1"}]->(e3)
+
+
+% Liga Statement em Subterm2
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://www.ic.unicamp.br/~santanch/temp/zfin/statement-entity-quality.csv' AS line
+MERGE (e4:Entity {id: line.subterm2})
+  ON CREATE SET e4 :GenericEntity, e4.id=line.subterm2
+WITH e4, line
+MATCH (s:Statement_EQ {id: line.identifier})
+CREATE (s)-[:has_entity {type: "sub2"}]->(e4)
+
+
+% Define o name do LabelQuality como único e cria um índice para o name
+CREATE CONSTRAINT ON (s:LabelQuality) ASSERT s.name IS UNIQUE
+
+
+% Carrega os sinonimos de PATO e faz suas ligações
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://localhost/data-phenotypes-mines/ZFIN/pato_synonym.csv' AS line
+MATCH (p:PATO { id: line.term_id })
+FOREACH (ignoreMe IN CASE WHEN line.type = "synonym" THEN [1] ELSE [] END |
+  MERGE (s:Label:LabelQuality {name: line.name})
+  CREATE (s)-[:is_synonym]->(p)
+)
+FOREACH (ignoreMe IN CASE WHEN line.type = "alt_id" THEN [1] ELSE [] END |
+  MERGE (q:Quality:PATO {id: line.name})
+  CREATE (q)-[:same_as]->(p)
+)
+
+
+
+
+% Carrega os sinonimos de ZFA e faz suas ligações
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://localhost/data-phenotypes-mines/ZFIN/zfa_synonym.csv' AS line
+MATCH (z:ZFA { id: line.term_id })
+FOREACH (ignoreMe IN CASE WHEN line.type = "synonym" THEN [1] ELSE [] END |
+  MERGE (s:Label:LabelEntity {name: line.name})
+  CREATE (s)-[:is_synonym]->(z)
+)
+FOREACH (ignoreMe IN CASE WHEN line.type = "alt_id" THEN [1] ELSE [] END |
+  MERGE (q:Entity:ZFA {id: line.name})
+  CREATE (q)-[:same_as]->(z)
+)
+
+
+% Carrega os sinonimos de GO e faz suas ligações 
+USING PERIODIC COMMIT
+LOAD CSV WITH HEADERS FROM 'http://localhost/data-phenotypes-mines/ZFIN/go_synonym.csv' AS line
+MATCH (g:GO { id: line.id})
+FOREACH (ignoreMe IN CASE WHEN line.type = "exact_synonym" THEN [1] ELSE [] END |
+  MERGE (s:Label:LabelEntity {name: line.syn})
+  CREATE (s)-[:is_synonym]->(g)
+)
+FOREACH (ignoreMe IN CASE WHEN line.type = "alt_id" THEN [1] ELSE [] END |
+  MERGE (q:Entity:GO {id: line.syn})
+  CREATE (q)-[:same_as]->(g)
+)
+
+
+// Devolve todos os indíces
+:schema

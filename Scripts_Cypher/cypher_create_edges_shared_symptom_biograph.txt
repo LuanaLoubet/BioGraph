@@ -1,0 +1,80 @@
+﻿ /***************************************************************************
+ *   Copyright (C) 2017 by Luana Loubet Borges, André Santanchè
+ *   Authors: Luana Loubet - luanaloubet@gmail.com
+ *	      André Santanchè - santanche@ic.unicamp.br
+ *	      
+ *   
+ *    This file is part of BioGraph.
+ *
+ *   BioGraph is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU General Public License as published by
+ *   the Free Software Foundation, either version 3 of the License, or
+ *   (at your option) any later version.
+ *
+ *   Foobar is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU General Public License for more details.
+ *
+ *   You should have received a copy of the GNU General Public License
+ *   along with Foobar.  If not, see <http://www.gnu.org/licenses/>. 
+ ****************************************************************************/	
+
+
+
+
+
+﻿To Create Edges -- Shared_Symptom
+
+
+
+
+// Cria arestas entre sintomas que compartilhem doenças. Essa aresta terá um atributo n que contém o número de doenças que esses sintomas compartilham:
+MATCH (s1:SYMP)-->(:DOID)<--(s2:SYMP) WHERE s1.id <> s2.id
+MERGE (s1)-[sd:SHARED_DISEASE]-(s2)
+         ON CREATE SET sd.n = 0.5
+         ON MATCH SET sd.n = sd.n + 0.5
+
+
+
+
+// Verifica se a consulta acima está correta:
+MATCH (s1:SYMP)-[sd:SHARED_DISEASE]-(s2:SYMP) WHERE (s1.id="SYMP:0000570" OR s1.id="SYMP:0000614" OR s1.id="SYMP:0000064" OR s1.id="SYMP:0000177") AND (s2.id="SYMP:0000570" OR s2.id="SYMP:0000614" OR s2.id="SYMP:0000064" OR s2.id="SYMP:0000177")
+MATCH (s1)-->(d:DOID)<--(s2)
+RETURN s1,sd,s2,d
+
+
+
+
+//Retorna relações de Symp--Symp para rodar análise
+MATCH (s1:SYMP)-[r]->(s2:SYMP) WHERE s1.id <> s2.id
+return id(s1), id(s2)
+
+
+// Retorna todo SYMP que tem relação com outro SYMP sem duplicar nós
+MATCH (s1)-[r:SHARED_DISEASE]-()
+return distinct id(s1), s1.name
+
+
+// Cria arestas entre dois e uberon para poder contar quantas entidades existem entre dois sintomas
+MATCH (s1:SYMP)-->(d:DOID)<--(u:Uberon)
+MERGE (s1)-[sd:related_with]-(u)
+
+
+// Cria arestas entre sintomas que compartilhem Entidades. Dois sintomas compartilham uma entidade se: (s1:SYMP)-->(d:DOID)<--(u:Uberon)-->(d2:DOID)<--(s2:SYMP). Essa aresta terá um atributo n que contém o número de entidades que esses sintomas compartilham:
+MATCH (s1:SYMP)-->(:Uberon)<--(s2:SYMP) WHERE s1.id <> s2.id
+MERGE (s1)-[sd:SHARED_ENTITY]-(s2)
+ON CREATE SET sd.n = 0.5
+ON MATCH SET sd.n = sd.n + 0.5
+
+
+// Verifica se a consulta acima (que cria aresta SHARED_ENTITY ) está correta:
+MATCH (s1:SYMP)-[sd:SHARED_ENTITY ]-(s2:SYMP) WHERE (s1.id="SYMP:0000570" OR s1.id="SYMP:0000614" OR s1.id="SYMP:0000064" OR s1.id="SYMP:0000177") AND (s2.id="SYMP:0000570" OR s2.id="SYMP:0000614" OR s2.id="SYMP:0000064" OR s2.id="SYMP:0000177")
+MATCH (s1)-->(d:Uberon)<--(s2)
+RETURN s1,sd,s2,d
+
+
+
+
+match(s1:SYMP)-->(d:DOID)<--(u:Uberon)-->(d2:DOID)<--(s2:SYMP)
+return s1,d,u,d2,s2 limit 10
