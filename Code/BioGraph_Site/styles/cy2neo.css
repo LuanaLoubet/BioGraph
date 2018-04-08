@@ -19,3 +19,8 @@ svg {
    z-index: 100;
    width: 20em;
 }
+
+#invisible {
+   display: none;
+   visibility: hidden;
+}

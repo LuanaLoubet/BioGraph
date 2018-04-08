@@ -1,7 +1,8 @@
 function Neo(urlSource) {
 	function txUrl() {
-		var url = (urlSource() || "http://localhost:7474").replace(/\/db\/data.*/,"");
-		return url + "/db/data/transaction/commit";
+		//var url = (urlSource() || "http://localhost:7474").replace(/\/db\/data.*/,"");
+
+		return "http://pandora.lis.ic.unicamp.br:7474" + "/db/data/transaction/commit";
 	}
 	var me = {
 		executeQuery: function(query, params, cb) {
