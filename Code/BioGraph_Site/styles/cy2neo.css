@@ -12,6 +12,12 @@ svg {
    right: 10em;
 }
 
+#execute2 {
+    font-size:30px;
+    position:absolute;
+    top: 0.6em;
+    right: 5em;
+}
 #neo4jUrl {
    position:absolute;
    right: 5px;
