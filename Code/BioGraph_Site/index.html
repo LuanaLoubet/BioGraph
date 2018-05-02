@@ -12,7 +12,8 @@
 <body onload="loadMenu()">
 
 <div id="menu">
-    <button id = "request" onclick="requestByLabel()" value="request" >Request</button>
+    <button id = "request"  value="request" >Request</button>
+    <button id = "requestRelacionamento"  value="request Grapho of label" >request Graph of label</button>
 </div>
 
 <div class="alchemy tab-pane active" id="graph"></div>
@@ -84,6 +85,8 @@
 
         config.neo4jUrl="http://pandora.lis.ic.unicamp.br:7474/db/data/";
         new Cy2Neo(config,"graph","cypher","request", function() { return $("#neo4jUrl").val(); });
+
+       new Cy2NeoRelacionamento(config,"graph","cypher","requestRelacionamento", function() { return $("#neo4jUrl").val(); });
     });
 </script>
 </body>
